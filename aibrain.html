@@ -2,42 +2,55 @@
 <html lang="th">
 <head>
   <meta charset="UTF-8" />
-  <title>Escape AI Brain</title>
+  <title>Escape AI Brain – 5 Levels</title>
   <style>
     body {
       font-family: "Segoe UI", sans-serif;
-      background: linear-gradient(135deg, #0f172a, #1e293b);
+      background: linear-gradient(135deg, #020617, #1e293b);
       color: white;
       text-align: center;
-      padding: 30px;
+      padding: 24px;
     }
     h1 {
-      margin-bottom: 5px;
+      margin-bottom: 6px;
     }
     .game-box {
       background: #020617;
-      border-radius: 16px;
+      border-radius: 18px;
       padding: 20px;
-      max-width: 600px;
+      max-width: 720px;
       margin: auto;
-      box-shadow: 0 0 20px rgba(0,0,0,0.5);
+      box-shadow: 0 0 25px rgba(0,0,0,0.6);
+    }
+    .level {
+      font-size: 18px;
+      margin-bottom: 6px;
+      color: #38bdf8;
+    }
+    .timer {
+      font-size: 18px;
+      margin-bottom: 10px;
+      color: #facc15;
+    }
+    .question {
+      font-size: 18px;
+      margin-bottom: 12px;
     }
     .slots, .cards {
       display: flex;
       justify-content: center;
       gap: 12px;
-      margin: 20px 0;
+      margin: 14px 0;
       flex-wrap: wrap;
     }
     .slot, .card {
-      width: 140px;
-      height: 60px;
+      min-width: 140px;
+      height: 56px;
       border-radius: 12px;
       display: flex;
       align-items: center;
       justify-content: center;
       font-weight: bold;
-      cursor: grab;
       user-select: none;
     }
     .slot {
@@ -47,150 +60,334 @@
     .card {
       background: #38bdf8;
       color: #020617;
+      cursor: grab;
     }
     .correct {
       background: #22c55e !important;
       color: #022c22;
+      border: none;
     }
     .wrong {
       background: #ef4444 !important;
       color: #7f1d1d;
+      border: none;
+    }
+    .choices {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 12px;
+      margin-top: 10px;
+    }
+    .choice {
+      background: #38bdf8;
+      color: #020617;
+      padding: 12px;
+      border-radius: 12px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: transform 0.1s ease;
+    }
+    .choice:hover {
+      transform: scale(1.04);
     }
     button {
       background: #6366f1;
       color: white;
       border: none;
-      border-radius: 10px;
-      padding: 10px 20px;
-      font-size: 16px;
+      border-radius: 12px;
+      padding: 10px 18px;
+      font-size: 15px;
       cursor: pointer;
-      margin-top: 10px;
+      margin-top: 12px;
     }
     button:hover {
       background: #4f46e5;
     }
     .status {
-      margin-top: 12px;
+      margin-top: 10px;
       font-size: 18px;
       min-height: 24px;
-    }
-    .timer {
-      font-size: 20px;
-      margin-top: 10px;
-      color: #facc15;
     }
   </style>
 </head>
 <body>
 
-  <h1>🧠 Escape AI Brain</h1>
-  <p>เรียงลำดับการทำงานของ AI ให้ถูกต้องภายใน 60 วินาที</p>
+<h1>🧠 Escape AI Brain</h1>
+<p>ผ่าน 5 ด่าน เพื่อหนีออกจากสมอง AI (เล่นจบ ~2 นาที)</p>
 
-  <div class="game-box">
-    <div class="timer">⏳ เวลา: <span id="time">60</span> วินาที</div>
+<div class="game-box">
+  <div class="level" id="levelText"></div>
+  <div class="timer">⏳ เวลา: <span id="time">40</span> วินาที</div>
+  <div class="question" id="question"></div>
 
-    <h3>ช่องวาง</h3>
-    <div class="slots">
-      <div class="slot" data-answer="Data"></div>
-      <div class="slot" data-answer="Model"></div>
-      <div class="slot" data-answer="Prediction"></div>
-    </div>
+  <div id="gameArea"></div>
 
-    <h3>ชิ้นส่วน</h3>
-    <div class="cards" id="cards"></div>
-
-    <button onclick="resetGame()">🔄 เล่นใหม่</button>
-    <div class="status" id="status"></div>
-  </div>
+  <button onclick="nextLevel()" id="nextBtn" style="display:none">➡️ ด่านถัดไป</button>
+  <button onclick="resetGame()">🔄 เล่นใหม่</button>
+  <div class="status" id="status"></div>
+</div>
 
 <script>
-const words = ["Data", "Model", "Prediction"];
-let timeLeft = 60;
+let level = 1;
+let timeLeft = 40;
 let timer;
 
-function shuffle(arr) {
-  return arr.sort(() => Math.random() - 0.5);
-}
-
-function createCards() {
-  const cardsDiv = document.getElementById("cards");
-  cardsDiv.innerHTML = "";
-  shuffle([...words]).forEach(word => {
-    const div = document.createElement("div");
-    div.className = "card";
-    div.textContent = word;
-    div.draggable = true;
-    div.addEventListener("dragstart", dragStart);
-    cardsDiv.appendChild(div);
-  });
-}
-
-function dragStart(e) {
-  e.dataTransfer.setData("text/plain", e.target.textContent);
-}
-
-document.querySelectorAll(".slot").forEach(slot => {
-  slot.addEventListener("dragover", e => e.preventDefault());
-  slot.addEventListener("drop", drop);
-});
-
-function drop(e) {
-  e.preventDefault();
-  const text = e.dataTransfer.getData("text/plain");
-  e.target.textContent = text;
-  checkAnswer();
-}
-
-function checkAnswer() {
-  const slots = document.querySelectorAll(".slot");
-  let correct = true;
-  slots.forEach(slot => {
-    if (!slot.textContent) return;
-    if (slot.textContent === slot.dataset.answer) {
-      slot.classList.add("correct");
-      slot.classList.remove("wrong");
-    } else {
-      slot.classList.add("wrong");
-      slot.classList.remove("correct");
-      correct = false;
-    }
-  });
-
-  if ([...slots].every(s => s.textContent)) {
-    if (correct) {
-      document.getElementById("status").textContent = "🎉 สำเร็จ! AI ทำงานถูกต้องแล้ว!";
-      clearInterval(timer);
-    } else {
-      document.getElementById("status").textContent = "❌ ลำดับยังไม่ถูก ลองใหม่!";
-    }
+// ---------- Level Data ----------
+const levels = [
+  {
+    type: "drag-sequence",
+    question: "เรียงลำดับการทำงานของ AI ให้ถูกต้อง",
+    answer: ["Data", "Model", "Prediction"],
+    options: ["Data", "Prediction", "Model"]
+  },
+  {
+    type: "choice",
+    question: "งานแบบไหนคือ Supervised Learning?",
+    correct: "แยกรูปแมว/หมาจากภาพที่มีป้ายกำกับ",
+    options: [
+      "จัดกลุ่มลูกค้าโดยไม่รู้ประเภทล่วงหน้า",
+      "แยกรูปแมว/หมาจากภาพที่มีป้ายกำกับ",
+      "ให้ AI เล่นเกมเองจากการลองผิดลองถูก",
+      "ให้ AI สร้างภาพจากข้อความ"
+    ]
+  },
+  {
+    type: "match",
+    question: "จับคู่ Input กับ Output ของ AI ให้ถูกต้อง",
+    pairs: [
+      { input: "ภาพถ่าย", output: "ชื่อวัตถุ" },
+      { input: "เสียงพูด", output: "ข้อความ" },
+      { input: "อุณหภูมิ", output: "พยากรณ์อากาศ" }
+    ]
+  },
+  {
+    type: "choice",
+    question: "ถ้าจะสร้าง AI ตรวจจับใบหน้า ควรใช้โมเดลแบบใด?",
+    correct: "Computer Vision",
+    options: ["Computer Vision", "NLP", "Time Series", "Recommendation System"]
+  },
+  {
+    type: "choice",
+    question: "ข้อใดคือ AI ที่มีความเป็นธรรม (Fair AI)?",
+    correct: "ให้ผลลัพธ์เท่าเทียมกับทุกเพศและเชื้อชาติ",
+    options: [
+      "เลือกเฉพาะข้อมูลจากกลุ่มเดียว",
+      "ให้ผลลัพธ์เท่าเทียมกับทุกเพศและเชื้อชาติ",
+      "ตัดสินใจเร็วที่สุดโดยไม่สนใจข้อมูล",
+      "เชื่อผลลัพธ์ AI 100% โดยไม่ตรวจสอบ"
+    ]
   }
-}
+];
 
+// ---------- Timer ----------
 function startTimer() {
   clearInterval(timer);
-  timeLeft = 60;
+  timeLeft = 40;
   document.getElementById("time").textContent = timeLeft;
   timer = setInterval(() => {
     timeLeft--;
     document.getElementById("time").textContent = timeLeft;
     if (timeLeft <= 0) {
       clearInterval(timer);
-      document.getElementById("status").textContent = "⏰ หมดเวลา! กดเล่นใหม่";
+      document.getElementById("status").textContent = "⏰ หมดเวลา! ลองใหม่อีกครั้ง";
     }
   }, 1000);
 }
 
-function resetGame() {
-  document.querySelectorAll(".slot").forEach(slot => {
-    slot.textContent = "";
-    slot.classList.remove("correct", "wrong");
-  });
+// ---------- Utilities ----------
+function shuffle(arr) {
+  return arr.sort(() => Math.random() - 0.5);
+}
+
+// ---------- Level Renderers ----------
+function renderLevel() {
   document.getElementById("status").textContent = "";
-  createCards();
+  document.getElementById("nextBtn").style.display = "none";
+  const gameArea = document.getElementById("gameArea");
+  gameArea.innerHTML = "";
+
+  const lvl = levels[level - 1];
+  document.getElementById("levelText").textContent = `ด่านที่ ${level} / 5`;
+  document.getElementById("question").textContent = lvl.question;
+
+  if (lvl.type === "drag-sequence") {
+    const slots = document.createElement("div");
+    slots.className = "slots";
+    lvl.answer.forEach(() => {
+      const s = document.createElement("div");
+      s.className = "slot";
+      s.addEventListener("dragover", e => e.preventDefault());
+      s.addEventListener("drop", e => dropSequence(e, lvl.answer));
+      slots.appendChild(s);
+    });
+
+    const cards = document.createElement("div");
+    cards.className = "cards";
+    shuffle([...lvl.options]).forEach(word => {
+      const c = document.createElement("div");
+      c.className = "card";
+      c.textContent = word;
+      c.draggable = true;
+      c.addEventListener("dragstart", e => {
+        e.dataTransfer.setData("text/plain", word);
+      });
+      cards.appendChild(c);
+    });
+
+    gameArea.appendChild(slots);
+    gameArea.appendChild(cards);
+  }
+
+  else if (lvl.type === "choice") {
+    const choices = document.createElement("div");
+    choices.className = "choices";
+    shuffle([...lvl.options]).forEach(opt => {
+      const c = document.createElement("div");
+      c.className = "choice";
+      c.textContent = opt;
+      c.onclick = () => checkChoice(opt, lvl.correct);
+      choices.appendChild(c);
+    });
+    gameArea.appendChild(choices);
+  }
+
+  else if (lvl.type === "match") {
+    const pairsDiv = document.createElement("div");
+    pairsDiv.className = "slots";
+
+    shuffle([...lvl.pairs]).forEach(pair => {
+      const row = document.createElement("div");
+      row.style.display = "flex";
+      row.style.gap = "10px";
+      row.style.alignItems = "center";
+
+      const left = document.createElement("div");
+      left.className = "card";
+      left.textContent = pair.input;
+      left.style.cursor = "default";
+
+      const slot = document.createElement("div");
+      slot.className = "slot";
+      slot.dataset.answer = pair.output;
+      slot.addEventListener("dragover", e => e.preventDefault());
+      slot.addEventListener("drop", e => dropMatch(e, slot));
+
+      row.appendChild(left);
+      row.appendChild(slot);
+      pairsDiv.appendChild(row);
+    });
+
+    const outputs = document.createElement("div");
+    outputs.className = "cards";
+    shuffle(lvl.pairs.map(p => p.output)).forEach(out => {
+      const c = document.createElement("div");
+      c.className = "card";
+      c.textContent = out;
+      c.draggable = true;
+      c.addEventListener("dragstart", e => {
+        e.dataTransfer.setData("text/plain", out);
+      });
+      outputs.appendChild(c);
+    });
+
+    gameArea.appendChild(pairsDiv);
+    gameArea.appendChild(outputs);
+  }
+
   startTimer();
 }
 
-resetGame();
+// ---------- Checkers ----------
+function dropSequence(e, answer) {
+  e.preventDefault();
+  const text = e.dataTransfer.getData("text/plain");
+  e.target.textContent = text;
+  checkSequence(answer);
+}
+
+function checkSequence(answer) {
+  const slots = document.querySelectorAll(".slot");
+  let filled = true;
+  let correct = true;
+  slots.forEach((slot, i) => {
+    if (!slot.textContent) filled = false;
+    if (slot.textContent !== answer[i]) correct = false;
+  });
+
+  if (filled) {
+    if (correct) {
+      winLevel();
+    } else {
+      document.getElementById("status").textContent = "❌ ลำดับยังไม่ถูก ลองใหม่!";
+    }
+  }
+}
+
+function checkChoice(choice, correct) {
+  if (choice === correct) {
+    winLevel();
+  } else {
+    document.getElementById("status").textContent = "❌ ยังไม่ถูก ลองอีกครั้ง!";
+  }
+}
+
+function dropMatch(e, slot) {
+  e.preventDefault();
+  const text = e.dataTransfer.getData("text/plain");
+  slot.textContent = text;
+  if (text === slot.dataset.answer) {
+    slot.classList.add("correct");
+  } else {
+    slot.classList.add("wrong");
+  }
+  checkMatch();
+}
+
+function checkMatch() {
+  const slots = document.querySelectorAll(".slot");
+  let allFilled = true;
+  let allCorrect = true;
+  slots.forEach(slot => {
+    if (!slot.textContent) allFilled = false;
+    if (slot.textContent !== slot.dataset.answer) allCorrect = false;
+  });
+
+  if (allFilled) {
+    if (allCorrect) {
+      winLevel();
+    } else {
+      document.getElementById("status").textContent = "❌ บางคู่ยังไม่ถูก ลองใหม่!";
+    }
+  }
+}
+
+// ---------- Level Control ----------
+function winLevel() {
+  clearInterval(timer);
+  document.getElementById("status").textContent = "✅ ผ่านด่าน!";
+  document.getElementById("nextBtn").style.display = "inline-block";
+}
+
+function nextLevel() {
+  if (level < levels.length) {
+    level++;
+    renderLevel();
+  } else {
+    document.getElementById("gameArea").innerHTML = "";
+    document.getElementById("question").textContent = "🎉 ยินดีด้วย! คุณหนีออกจากสมอง AI สำเร็จแล้ว!";
+    document.getElementById("levelText").textContent = "จบเกม";
+    document.getElementById("nextBtn").style.display = "none";
+    document.getElementById("status").textContent = "🤖 คุณพร้อมเรียน AI แล้ว!";
+  }
+}
+
+function resetGame() {
+  level = 1;
+  renderLevel();
+}
+
+// Start
+renderLevel();
 </script>
 
 </body>
