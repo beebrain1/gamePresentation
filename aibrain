@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <title>Escape AI Brain</title>
+  <style>
+    body {
+      font-family: "Segoe UI", sans-serif;
+      background: linear-gradient(135deg, #0f172a, #1e293b);
+      color: white;
+      text-align: center;
+      padding: 30px;
+    }
+    h1 {
+      margin-bottom: 5px;
+    }
+    .game-box {
+      background: #020617;
+      border-radius: 16px;
+      padding: 20px;
+      max-width: 600px;
+      margin: auto;
+      box-shadow: 0 0 20px rgba(0,0,0,0.5);
+    }
+    .slots, .cards {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      margin: 20px 0;
+      flex-wrap: wrap;
+    }
+    .slot, .card {
+      width: 140px;
+      height: 60px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      cursor: grab;
+      user-select: none;
+    }
+    .slot {
+      border: 2px dashed #64748b;
+      background: #020617;
+    }
+    .card {
+      background: #38bdf8;
+      color: #020617;
+    }
+    .correct {
+      background: #22c55e !important;
+      color: #022c22;
+    }
+    .wrong {
+      background: #ef4444 !important;
+      color: #7f1d1d;
+    }
+    button {
+      background: #6366f1;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      padding: 10px 20px;
+      font-size: 16px;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+    button:hover {
+      background: #4f46e5;
+    }
+    .status {
+      margin-top: 12px;
+      font-size: 18px;
+      min-height: 24px;
+    }
+    .timer {
+      font-size: 20px;
+      margin-top: 10px;
+      color: #facc15;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>🧠 Escape AI Brain</h1>
+  <p>เรียงลำดับการทำงานของ AI ให้ถูกต้องภายใน 60 วินาที</p>
+
+  <div class="game-box">
+    <div class="timer">⏳ เวลา: <span id="time">60</span> วินาที</div>
+
+    <h3>ช่องวาง</h3>
+    <div class="slots">
+      <div class="slot" data-answer="Data"></div>
+      <div class="slot" data-answer="Model"></div>
+      <div class="slot" data-answer="Prediction"></div>
+    </div>
+
+    <h3>ชิ้นส่วน</h3>
+    <div class="cards" id="cards"></div>
+
+    <button onclick="resetGame()">🔄 เล่นใหม่</button>
+    <div class="status" id="status"></div>
+  </div>
+
+<script>
+const words = ["Data", "Model", "Prediction"];
+let timeLeft = 60;
+let timer;
+
+function shuffle(arr) {
+  return arr.sort(() => Math.random() - 0.5);
+}
+
+function createCards() {
+  const cardsDiv = document.getElementById("cards");
+  cardsDiv.innerHTML = "";
+  shuffle([...words]).forEach(word => {
+    const div = document.createElement("div");
+    div.className = "card";
+    div.textContent = word;
+    div.draggable = true;
+    div.addEventListener("dragstart", dragStart);
+    cardsDiv.appendChild(div);
+  });
+}
+
+function dragStart(e) {
+  e.dataTransfer.setData("text/plain", e.target.textContent);
+}
+
+document.querySelectorAll(".slot").forEach(slot => {
+  slot.addEventListener("dragover", e => e.preventDefault());
+  slot.addEventListener("drop", drop);
+});
+
+function drop(e) {
+  e.preventDefault();
+  const text = e.dataTransfer.getData("text/plain");
+  e.target.textContent = text;
+  checkAnswer();
+}
+
+function checkAnswer() {
+  const slots = document.querySelectorAll(".slot");
+  let correct = true;
+  slots.forEach(slot => {
+    if (!slot.textContent) return;
+    if (slot.textContent === slot.dataset.answer) {
+      slot.classList.add("correct");
+      slot.classList.remove("wrong");
+    } else {
+      slot.classList.add("wrong");
+      slot.classList.remove("correct");
+      correct = false;
+    }
+  });
+
+  if ([...slots].every(s => s.textContent)) {
+    if (correct) {
+      document.getElementById("status").textContent = "🎉 สำเร็จ! AI ทำงานถูกต้องแล้ว!";
+      clearInterval(timer);
+    } else {
+      document.getElementById("status").textContent = "❌ ลำดับยังไม่ถูก ลองใหม่!";
+    }
+  }
+}
+
+function startTimer() {
+  clearInterval(timer);
+  timeLeft = 60;
+  document.getElementById("time").textContent = timeLeft;
+  timer = setInterval(() => {
+    timeLeft--;
+    document.getElementById("time").textContent = timeLeft;
+    if (timeLeft <= 0) {
+      clearInterval(timer);
+      document.getElementById("status").textContent = "⏰ หมดเวลา! กดเล่นใหม่";
+    }
+  }, 1000);
+}
+
+function resetGame() {
+  document.querySelectorAll(".slot").forEach(slot => {
+    slot.textContent = "";
+    slot.classList.remove("correct", "wrong");
+  });
+  document.getElementById("status").textContent = "";
+  createCards();
+  startTimer();
+}
+
+resetGame();
+</script>
+
+</body>
+</html>
